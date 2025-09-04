@@ -1,57 +1,986 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Rekonsel Data</title>
-  <style>
-    body { font-family: Arial; padding: 20px; }
-    table { border-collapse: collapse; width: 100%; margin-top: 20px; }
-    th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
-    th { background: #eee; }
-    tr:hover { background: #f2f2f2; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Crossdock Minimalis</title>
+    <link rel="stylesheet" href="output.css">
+    <style>
+        /* CSS disederhanakan untuk tampilan minimalis dan datar */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #2d3748;
+        }
+        .main-container {
+            display: flex;
+            height: 100vh;
+        }
+        .sidebar {
+            width: 280px;
+            background-color: #2f3640;
+            color: #ffffff;
+            padding: 1.5rem;
+            border-right: 1px solid #4a5568;
+        }
+        .content {
+            flex-grow: 1;
+            background-color: #f7fafc;
+            padding: 2rem;
+            overflow-y: auto;
+        }
+        .hidden-content {
+            display: none;
+        }
+        .active-content {
+            display: block;
+        }
+        .sidebar a {
+            display: block;
+            padding: 0.75rem 1rem;
+            border-radius: 0.5rem;
+            color: #d1d5db;
+            transition: background-color 0.2s ease;
+        }
+        .sidebar a:hover {
+            background-color: #4a5568;
+            color: #ffffff;
+        }
+        .sidebar a.active {
+            background-color: #4a5568;
+            color: #ffffff;
+        }
+        .dropdown-menu {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease-out;
+        }
+        .dropdown-menu.open {
+            max-height: 500px;
+        }
+    </style>
+    <script src="js/xlsx.full.min.js"></script>
+    <script src="js/sweetalert2.all.min.js"></script>
 </head>
 <body>
-  <h2>Data Rekonsel</h2>
-  <table id="data-table">
-    <thead></thead>
-    <tbody></tbody>
-  </table>
+    <div class="main-container">
+        <div class="sidebar">
+            <h1 class="text-2xl font-bold mb-8 text-center text-gray-200">Crossdock App</h1>
+            <nav class="space-y-2">
+                <div>
+                    <a href="#" class="flex justify-between items-center dropdown-toggle" data-target="crossdock-menu">
+                        <span>Crossdock</span>
+                        <svg class="w-4 h-4 transform transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                        </svg>
+                    </a>
+                    <div id="crossdock-menu" class="dropdown-menu pl-4 mt-1 space-y-1">
+                        <a href="#" data-target="import" class="active-link">Import</a>
+                        <a href="#" data-target="dashboard">Dashboard</a>
+                        <a href="#" data-target="outstandingCrossdock">Outstanding Crossdock</a>
+                    </div>
+                </div>
+                <div>
+                    <a href="#" class="flex justify-between items-center dropdown-toggle" data-target="dokumen-menu">
+                        <span>Dokumen</span>
+                        <svg class="w-4 h-4 transform transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                        </svg>
+                    </a>
+                    <div id="dokumen-menu" class="dropdown-menu pl-4 mt-1 space-y-1">
+                        <a href="#" data-target="dokumenA">Dokumen A</a>
+                        <a href="#" data-target="dokumenB">Dokumen B</a>
+                        <a href="#" data-target="dokumenC">Dokumen C</a>
+                        <a href="#" data-target="dokumenD">Dokumen D</a>
+                    </div>
+                </div>
+            </nav>
+        </div>
 
-  <script>
-    const urlGAS = "https://script.google.com/macros/s/AKfycbzluux64aShs0K5Tfl2Ae71vrL3jdqGQV68ACBpRrsCmPJoRY0zXVBSa1EV5HxTa-tX8Q/exec"; // ganti dengan URL GAS Web App
+        <div class="content">
+            <div id="import" class="active-content">
+                <h2 class="text-3xl font-bold mb-6 text-gray-800">Import Data</h2>
+                <div class="bg-white p-6 rounded-lg shadow-md mb-6">
+                    <h3 class="text-xl font-semibold mb-4 text-gray-700">Pilih File</h3>
+                    <div class="flex items-center space-x-4">
+                        <label for="file-input" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg cursor-pointer transition-colors duration-200">
+                            Pilih File Excel
+                        </label>
+                        <input type="file" id="file-input" class="hidden" accept=".xlsx, .xls, .json">
+                        <p id="file-name" class="text-gray-500 italic">Belum ada file dipilih</p>
+                    </div>
+                </div>
 
-    fetch(urlGAS)
-      .then(res => res.json())
-      .then(data => {
-        const table = document.getElementById("data-table");
-        if (data.length > 0) {
-          // buat header
-          const headers = Object.keys(data[0]);
-          const thead = table.querySelector("thead");
-          const trHead = document.createElement("tr");
-          headers.forEach(h => {
-            const th = document.createElement("th");
-            th.textContent = h;
-            trHead.appendChild(th);
-          });
-          thead.appendChild(trHead);
+                <div id="preview" class="hidden-content">
+                    <h3 class="text-xl font-semibold mb-4 text-gray-700">Preview Data</h3>
+                    <div class="bg-white p-6 rounded-lg shadow-md mb-6 max-h-[80vh] overflow-y-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50 sticky top-0">
+                                <tr>
+                                    <th class="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">No</th>
+                                    <th class="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">CreateDate</th>
+                                    <th class="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Site</th>
+                                    <th class="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Id Code</th>
+                                    <th class="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">VendorName</th>
+                                    <th class="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">FromSiteName</th>
+                                    <th class="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ToSiteName</th>
+                                    <th class="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">EndStatus</th>
+                                    <th class="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">PIC</th>
+                                    <th class="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Keterangan</th>
+                                    <th class="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Month</th>
+                                    <th class="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Day</th>
+                                    <th class="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">DK_LK</th>
+                                </tr>
+                            </thead>
+                            <tbody id="preview-tbody" class="bg-white divide-y divide-gray-200">
+                                </tbody>
+                        </table>
+                    </div>
+                    <button id="save-btn" class="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-6 rounded-lg transition-colors duration-200">
+                        Simpan Data
+                    </button>
+                </div>
+            </div>
 
-          // isi data
-          const tbody = table.querySelector("tbody");
-          data.forEach(row => {
-            const tr = document.createElement("tr");
-            headers.forEach(h => {
-              const td = document.createElement("td");
-              td.textContent = row[h];
-              tr.appendChild(td);
+            <div id="dashboard" class="hidden-content">
+                <h2 class="text-3xl font-bold mb-6 text-gray-800">Dashboard</h2>
+                <div class="space-y-10">
+                    <header class="bg-white rounded-2xl p-8 shadow-md border border-gray-200">
+                        <div class="flex flex-col sm:flex-row justify-between items-center mb-8">
+                            <h2 class="text-3xl font-bold text-gray-800 mb-4 sm:mb-0">Monitoring Crossdock Suppychain App</h2>
+                            <select id="siteFilter" class="p-3 rounded-xl bg-gray-100 border border-black text-gray-800 text-base focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                <option value="">Site</option>
+                                <option value="Antar Site">Antar Site</option>
+                                <option value="Supplier">Supplier</option>
+                            </select>
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6 card-summary">
+                            <!-- Card: Grand Total -->
+                            <div class="bg-white rounded-2xl p-6 text-center shadow-sm border border-gray-200">
+                                <p class="text-base text-gray-600 mb-2 font-medium">Grand Total</p>
+                                <div id="grand-total" class="text-4xl font-extrabold text-blue-600">0</div>
+                            </div>
+                            <!-- Card: Total Admin Inbound -->
+                            <div class="bg-white rounded-2xl p-6 text-center shadow-sm border border-gray-200">
+                                <p class="text-base text-gray-600 mb-2 font-medium">Total Admin Inbound</p>
+                                <div id="total-admin-inbound" class="text-4xl font-extrabold text-green-600">0</div>
+                            </div>
+                            <!-- Card: Total Checker Inbound -->
+                            <div class="bg-white rounded-2xl p-6 text-center shadow-sm border border-gray-200">
+                                <p class="text-base text-gray-600 mb-2 font-medium">Total Checker Inbound</p>
+                                <div id="total-checker-inbound" class="text-4xl font-extrabold text-red-600">0</div>
+                            </div>
+                            <!-- Card: Total Checker Outbound -->
+                            <div class="bg-white rounded-2xl p-6 text-center shadow-sm border border-gray-200">
+                                <p class="text-base text-gray-600 mb-2 font-medium">Total Checker Outbound</p>
+                                <div id="total-checker-outbound" class="text-4xl font-extrabold text-orange-600">0</div>
+                            </div>
+                            <!-- Card: Total Admin Outbound -->
+                            <div class="bg-white rounded-2xl p-6 text-center shadow-sm border border-gray-200">
+                                <p class="text-base text-gray-600 mb-2 font-medium">Total Admin Outbound</p>
+                                <div id="total-admin-outbound" class="text-4xl font-extrabold text-purple-600">0</div>
+                            </div>
+                        </div>
+                    </header>
+
+                    <!-- Bagian Semua Dokumen -->
+                    <div class="bg-white rounded-2xl p-8 shadow-md border border-gray-200">
+                        <h2 class="text-3xl font-bold mb-8 flex items-center text-gray-800">
+                            <span class="mr-4 text-4xl">📁</span> Summary Crossdock By Month
+                        </h2>
+                        
+                        <div id="monthly-summary-container" class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="outstandingCrossdock" class="hidden-content">
+                <h2 class="text-3xl font-bold mb-6 text-gray-800">Outstanding Crossdock</h2>
+                <div class="bg-white p-6 rounded-lg shadow-md mb-6 flex space-x-4 items-end">
+                    <div>
+                        <label for="filter-from-site" class="block text-sm font-medium text-gray-700 mb-1">Filter From Site Name:</label>
+                        <select id="filter-from-site" class="block w-full rounded-md border-black shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 py-2 px-3">
+                            <option value="">-- Pilih From Site --</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="filter-month" class="block text-sm font-medium text-gray-700 mb-1">Filter Month:</label>
+                        <select id="filter-month" class="block w-full rounded-md border-black shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 py-2 px-3">
+                            <option value="">-- Pilih Bulan --</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="filter-site" class="block text-sm font-medium text-gray-700 mb-1">Filter Site:</label>
+                        <select id="filter-site" class="block w-full rounded-md border-black shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 py-2 px-3">
+                            <option value="">-- Pilih Site --</option>
+                            </select>
+                    </div>
+
+                    <div>
+                        <label for="filter-DK_LK" class="block text-sm font-medium text-gray-700 mb-1">Filter DK_LK:</label>
+                        <select id="filter-DK_LK" class="block w-full rounded-md border-black shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 py-2 px-3">
+                            <option value="">-- Pilih DK_LK --</option>
+                            </select>
+                    </div>
+
+                    <div>
+                        <label for="filter-keterangan" class="block text-sm font-medium text-gray-700 mb-1">Filter Keterangan:</label>
+                        <select id="filter-keterangan" class="block w-full rounded-md border-black shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 py-2 px-3">
+                            <option value="">-- Pilih Keterangan --</option>
+                            </select>
+                    </div>
+                    <div>
+                            <label for="filter-day" class="block text-sm font-medium text-gray-700 mb-1">Filter Day:</label>
+                            <select id="filter-day" class="block w-full rounded-md border-black shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 py-2 px-3">
+                                <option value="">-- Pilih Rentang Hari --</option>
+                                <option value="0-3">0 - 3 Hari</option>
+                                <option value="3-7">3 - 7 Hari</option>
+                                <option value="7-1000">Diatas 7 Hari</option>
+                            </select>
+                        </div>
+                    
+                    <button id="reset-filter-btn" class="bg-black hover:bg-gray-500 text-white font-bold py-2 px-4 rounded-lg transition-colors duration-200">
+                        Reset Filter
+                    </button>
+                    <button id="export-excel-btn" class="bg-green-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg transition-colors duration-200">
+                        Export to Excel
+                    </button>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-md mb-6 overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50 sticky top-0">
+                            <tr>
+                                <th class="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">No</th>
+                                <th class="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">CreateDate</th>
+                                <th class="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Site</th>
+                                <th class="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Id Code</th>
+                                <th class="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">VendorName</th>
+                                <th class="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">FromSiteName</th>
+                                <th class="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ToSiteName</th>
+                                <th class="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">EndStatus</th>
+                                <th class="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">PIC</th>
+                                <th class="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Keterangan</th>
+                                <th class="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Month</th>
+                                <th class="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Day</th>
+                                <th class="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">DK_LK</th>
+                            </tr>
+                        </thead>
+                        <tbody id="detailStore-tbody" class="bg-white divide-y divide-gray-200">
+                            </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div id="dokumenA" class="hidden-content">
+                <h2 class="text-3xl font-bold mb-6 text-gray-800">Dokumen A</h2>
+                <div class="bg-white p-6 rounded-lg shadow-md mb-6">
+                    <p class="text-gray-700">Ini adalah halaman Dokumen A.</p>
+                </div>
+            </div>
+            <div id="dokumenB" class="hidden-content">
+                <h2 class="text-3xl font-bold mb-6 text-gray-800">Dokumen B</h2>
+                <div class="bg-white p-6 rounded-lg shadow-md mb-6">
+                    <p class="text-gray-700">Ini adalah halaman Dokumen B.</p>
+                </div>
+            </div>
+            <div id="dokumenC" class="hidden-content">
+                <h2 class="text-3xl font-bold mb-6 text-gray-800">Dokumen C</h2>
+                <div class="bg-white p-6 rounded-lg shadow-md mb-6">
+                    <p class="text-gray-700">Ini adalah halaman Dokumen C.</p>
+                </div>
+            </div>
+            <div id="dokumenD" class="hidden-content">
+                <h2 class="text-3xl font-bold mb-6 text-gray-800">Dokumen D</h2>
+                <div class="bg-white p-6 rounded-lg shadow-md mb-6">
+                    <p class="text-gray-700">Ini adalah halaman Dokumen D.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const documentStatuses = [
+            { endStatus: "New Document", keterangan: "New SCCD", remarks: "Admin Inbound" },
+            { endStatus: "Inbound Process", keterangan: "Belum di Scan Inbound", remarks: "Checker Inbound" },
+            { endStatus: "On The Way To Outbond", keterangan: "Belum Di Scan Checker", remarks: "Checker Outbound" },
+            { endStatus: "Outbond Process", keterangan: "Belum Di Confirm", remarks: "Admin Outbound" },
+            { endStatus: "Delivery Process", keterangan: "Sudah Terkirim Ke Toko", remarks: "Toko" },
+            { endStatus: "Transit On The Way To Outbond", keterangan: "Belum Di Scan Checker Outbound Toko", remarks: "Toko" },
+            { endStatus: "Transit Inbond Process", keterangan: "Belum Di Proses Inbound Toko", remarks: "Toko" },
+            { endStatus: "Transit Outbond Process", keterangan: "Belum Di Confirm Toko", remarks: "Toko" },
+            { endStatus: "Finish Document", keterangan: "Sudah Di Terima Toko", remarks: "Toko" },
+            { endStatus: "Cancel Document", keterangan: "Batal Kirim", remarks: "Admin Inbound" }
+        ];
+    </script>
+
+    <script>
+        const vendorMatrix = [
+        // Supplier
+        { VendorName: "ALL-CATUR MITRA SEJATI SENTOSA. PT", Keterangan: "Supplier", DK_LK: "Supplier" },
+        { VendorName: "ALLURE ALLUMINIO, PT. (BATAM) (C)", Keterangan: "Supplier", DK_LK: "Supplier" },
+        { VendorName: "ARTHA BUANA, CV.", Keterangan: "Supplier", DK_LK: "Supplier" },
+        { VendorName: "CATUR SENTOSA BERHASIL, PT. (ATRIA)", Keterangan: "Supplier", DK_LK: "Supplier" },
+        { VendorName: "INTI ARTHA BUANA , PT.", Keterangan: "Supplier", DK_LK: "Supplier" },
+        { VendorName: "JBD-LIXIL TRADING INDONESIA, PT.", Keterangan: "Supplier", DK_LK: "Supplier" },
+        { VendorName: "JBD-MAMI SATU BERKARYA, PT.", Keterangan: "Supplier", DK_LK: "Supplier" },
+        { VendorName: "JKT-ALLURE ALLUMINIO, PT.", Keterangan: "Supplier", DK_LK: "Supplier" },
+        { VendorName: "JKT-CONWOOD INDONESIA, PT.", Keterangan: "Supplier", DK_LK: "Supplier" },
+        { VendorName: "JKT-DIFAN PRIMA PAINT.PT", Keterangan: "Supplier", DK_LK: "Supplier" },
+        { VendorName: "JKT-ELEGANZA TILE INDONESA. PT", Keterangan: "Supplier", DK_LK: "Supplier" },
+        { VendorName: "JKT-MARGAWOOD TATA RESPATI. PT", Keterangan: "Supplier", DK_LK: "Supplier" },
+        { VendorName: "JKT-NIRO CERAMIC SALES INDONESIA.PT", Keterangan: "Supplier", DK_LK: "Supplier" },
+        { VendorName: "JKT-PD. MITRA BANGUNAN", Keterangan: "Supplier", DK_LK: "Supplier" },
+        { VendorName: "JKT-ROBERT BOSCH. PT", Keterangan: "Supplier", DK_LK: "Supplier" },
+        { VendorName: "JKT-SINTESA AMANAH KAWAN ABADI, PT.", Keterangan: "Supplier", DK_LK: "Supplier" },
+        { VendorName: "JKT-SPECTRUM KIND", Keterangan: "Supplier", DK_LK: "Supplier" },
+        { VendorName: "MAMI SATU BERKARYA, PT. (BATAM)", Keterangan: "Supplier", DK_LK: "Supplier" },
+        { VendorName: "MULIA PERKASA (JAKARTA) (C)", Keterangan: "Supplier", DK_LK: "Supplier" },
+        { VendorName: "PERINTIS TEKNOPRIMA, PT. (JAKARTA) (R)", Keterangan: "Supplier", DK_LK: "Supplier" },
+        { VendorName: "SANDIMAS KATUSA KERAMIKA INDUSTRIES, PT. (R)", Keterangan: "Supplier", DK_LK: "Supplier" },
+        { VendorName: "SATYA DJAYA RAYA TRADING COY, PT. (JAKARTA) (R)", Keterangan: "Supplier", DK_LK: "Supplier" },
+        { VendorName: "SUMBER MANDIRI, PT.", Keterangan: "Supplier", DK_LK: "Supplier" },
+        { VendorName: "TENDA TANGERANG", Keterangan: "Supplier", DK_LK: "Supplier" },
+        { VendorName: "BSH HOME APPLIANCES, PT.", Keterangan: "Supplier", DK_LK: "Supplier" },
+        { VendorName: "BELMONTANA JAYA, PT..", Keterangan: "Supplier", DK_LK: "Supplier" },
+        { VendorName: "BELMONTANA JAYA, PT.", Keterangan: "Supplier", DK_LK: "Supplier" },
+        { VendorName: "DAVINDIRA MITRA SEJAHTERA, PT.", Keterangan: "Supplier", DK_LK: "Supplier" },
+
+        // Antar Site - Luar Kota
+        { VendorName: "MITRA10 AHMAD YANI", Keterangan: "Antar Site", DK_LK: "Luar Kota" },
+        { VendorName: "MITRA10 AHMAD YANI SAMARINDA", Keterangan: "Antar Site", DK_LK: "Luar Kota" },
+        { VendorName: "MITRA10 ANTASARI", Keterangan: "Antar Site", DK_LK: "Luar Kota" },
+        { VendorName: "MITRA10 BAKARUDDIN JAMBI", Keterangan: "Antar Site", DK_LK: "Luar Kota" },
+        { VendorName: "MITRA10 BALIKPAPAN BARU", Keterangan: "Antar Site", DK_LK: "Luar Kota" },
+        { VendorName: "MITRA10 BALONG BENDO", Keterangan: "Antar Site", DK_LK: "Luar Kota" },
+        { VendorName: "MITRA10 BATAM", Keterangan: "Antar Site", DK_LK: "Luar Kota" },
+        { VendorName: "MITRA10 BYPASS NGURAH RAI", Keterangan: "Antar Site", DK_LK: "Luar Kota" },
+        { VendorName: "MITRA10 GARUT", Keterangan: "Antar Site", DK_LK: "Luar Kota" },
+        { VendorName: "MITRA10 GATOT SUBROTO", Keterangan: "Antar Site", DK_LK: "Luar Kota" },
+        { VendorName: "MITRA10 JAKABARING", Keterangan: "Antar Site", DK_LK: "Luar Kota" },
+        { VendorName: "MITRA10 JENGGOLO SIDOARJO", Keterangan: "Antar Site", DK_LK: "Luar Kota" },
+        { VendorName: "MITRA10 KEBON SARI MALANG", Keterangan: "Antar Site", DK_LK: "Luar Kota" },
+        { VendorName: "MITRA10 KEDUNGDORO", Keterangan: "Antar Site", DK_LK: "Luar Kota" },
+        { VendorName: "MITRA10 KIARA CONDONG BANDUNG", Keterangan: "Antar Site", DK_LK: "Luar Kota" },
+        { VendorName: "MITRA10 MADIUN", Keterangan: "Antar Site", DK_LK: "Luar Kota" },
+        { VendorName: "MITRA10 MAGUWOHARJO SLEMAN", Keterangan: "Antar Site", DK_LK: "Luar Kota" },
+        { VendorName: "MITRA10 MATARAM", Keterangan: "Antar Site", DK_LK: "Luar Kota" },
+        { VendorName: "MITRA10 MEDAN", Keterangan: "Antar Site", DK_LK: "Luar Kota" },
+        { VendorName: "MITRA10 PEKAN BARU", Keterangan: "Antar Site", DK_LK: "Luar Kota" },
+        { VendorName: "MITRA10 PURWOKERTO", Keterangan: "Antar Site", DK_LK: "Luar Kota" },
+        { VendorName: "MITRA10 RAJABASA", Keterangan: "Antar Site", DK_LK: "Luar Kota" },
+        { VendorName: "MITRA10 SEMARANG", Keterangan: "Antar Site", DK_LK: "Luar Kota" },
+        { VendorName: "MITRA10 SOLO BARU", Keterangan: "Antar Site", DK_LK: "Luar Kota" },
+        { VendorName: "MITRA10 SUNAN GUNUNG JATI", Keterangan: "Antar Site", DK_LK: "Luar Kota" },
+        { VendorName: "MITRA10 TALLASA CITY MAKASSAR", Keterangan: "Antar Site", DK_LK: "Luar Kota" },
+        { VendorName: "MITRA10 TANJUNG API API", Keterangan: "Antar Site", DK_LK: "Luar Kota" },
+        { VendorName: "MITRA10 TASIKMALAYA", Keterangan: "Antar Site", DK_LK: "Luar Kota" },
+        { VendorName: "MITRA10 TEGAL", Keterangan: "Antar Site", DK_LK: "Luar Kota" },
+        { VendorName: "MITRA10 WIYUNG", Keterangan: "Antar Site", DK_LK: "Luar Kota" },
+        { VendorName: "DC BINJAI", Keterangan: "Antar Site", DK_LK: "Luar Kota" },
+
+        // Antar Site - Dalam Kota
+        { VendorName: "MITRA10 BINTARO", Keterangan: "Antar Site", DK_LK: "Dalam Kota" },
+        { VendorName: "MITRA10 BINTARO JAYA", Keterangan: "Antar Site", DK_LK: "Dalam Kota" },
+        { VendorName: "MITRA10 BITUNG", Keterangan: "Antar Site", DK_LK: "Dalam Kota" },
+        { VendorName: "MITRA10 CIBARUSAH", Keterangan: "Antar Site", DK_LK: "Dalam Kota" },
+        { VendorName: "MITRA10 CIBINONG", Keterangan: "Antar Site", DK_LK: "Dalam Kota" },
+        { VendorName: "MITRA10 CIBUBUR", Keterangan: "Antar Site", DK_LK: "Dalam Kota" },
+        { VendorName: "MITRA10 CINERE", Keterangan: "Antar Site", DK_LK: "Dalam Kota" },
+        { VendorName: "MITRA10 DAAN MOGOT", Keterangan: "Antar Site", DK_LK: "Dalam Kota" },
+        { VendorName: "MITRA10 DEPOK", Keterangan: "Antar Site", DK_LK: "Dalam Kota" },
+        { VendorName: "MITRA10 FATMAWATI NEW", Keterangan: "Antar Site", DK_LK: "Dalam Kota" },
+        { VendorName: "MITRA10 GADING SERPONG", Keterangan: "Antar Site", DK_LK: "Dalam Kota" },
+        { VendorName: "MITRA10 ISKANDAR BOGOR", Keterangan: "Antar Site", DK_LK: "Dalam Kota" },
+        { VendorName: "MITRA10 JABABEKA", Keterangan: "Antar Site", DK_LK: "Dalam Kota" },
+        { VendorName: "MITRA10 JATI MAKMUR", Keterangan: "Antar Site", DK_LK: "Dalam Kota" },
+        { VendorName: "MITRA10 KALIMALANG BARU", Keterangan: "Antar Site", DK_LK: "Dalam Kota" },
+        { VendorName: "MITRA10 KARAWANG", Keterangan: "Antar Site", DK_LK: "Dalam Kota" },
+        { VendorName: "MITRA10 KOTA HARAPAN INDAH", Keterangan: "Antar Site", DK_LK: "Dalam Kota" },
+        { VendorName: "MITRA10 PANTAI INDAH KAPUK", Keterangan: "Antar Site", DK_LK: "Dalam Kota" },
+        { VendorName: "MITRA10 PASAR BARU", Keterangan: "Antar Site", DK_LK: "Dalam Kota" },
+        { VendorName: "MITRA10 PERCETAKAN NEGARA", Keterangan: "Antar Site", DK_LK: "Dalam Kota" },
+        { VendorName: "MITRA10 PESANGGRAHAN", Keterangan: "Antar Site", DK_LK: "Dalam Kota" },
+        { VendorName: "MITRA10 PONDOK BAMBU", Keterangan: "Antar Site", DK_LK: "Dalam Kota" },
+        { VendorName: "MITRA10 Q-BIG", Keterangan: "Antar Site", DK_LK: "Dalam Kota" },
+        { VendorName: "MITRA10 SERANG", Keterangan: "Antar Site", DK_LK: "Dalam Kota" },
+        { VendorName: "MITRA10 SERVICE CENTER", Keterangan: "Antar Site", DK_LK: "Dalam Kota" },
+        { VendorName: "MITRA10 SHILA SAWANGAN", Keterangan: "Antar Site", DK_LK: "Dalam Kota" },
+        { VendorName: "MITRA10 SILIWANGI PAMULANG", Keterangan: "Antar Site", DK_LK: "Dalam Kota" },
+        { VendorName: "DC CIKUPA", Keterangan: "Antar Site", DK_LK: "Dalam Kota" },
+        { VendorName: "DC CIPEUCANG", Keterangan: "Antar Site", DK_LK: "Dalam Kota" },
+        { VendorName: "DC TEMBESU", Keterangan: "Antar Site", DK_LK: "Dalam Kota" },
+    ];
+    </script>
+
+    
+    <script>
+        // Variabel untuk menyimpan data
+            let dataUnik = [];
+            let dataFull = [];
+            let filteredData = [];
+        document.addEventListener('DOMContentLoaded', () => {
+            // Mendapatkan elemen DOM
+            const dropdownToggles = document.querySelectorAll('.dropdown-toggle');
+            const contentLinks = document.querySelectorAll('.sidebar a[data-target]');
+            const fileInput = document.getElementById('file-input');
+            const fileNameDisplay = document.getElementById('file-name');
+            const previewSection = document.getElementById('preview');
+            const previewTbody = document.getElementById('preview-tbody');
+            const saveBtn = document.getElementById('save-btn');
+            const contentContainers = document.querySelectorAll('.content > div');
+            const siteFilter = document.getElementById('siteFilter');
+
+            // Mendapatkan elemen untuk Outstanding Crossdock
+            const detailStoreTbody = document.getElementById('detailStore-tbody');
+            const filterSite = document.getElementById('filter-site');
+            const filterKeterangan = document.getElementById('filter-keterangan');
+            const filterFromSite = document.getElementById('filter-from-site');
+            const filterDK_LK = document.getElementById('filter-DK_LK');
+            const filterMonth = document.getElementById('filter-month');
+            const filterDay = document.getElementById('filter-day');
+            const resetFilterBtn = document.getElementById('reset-filter-btn');
+            const exportExcelBtn = document.getElementById('export-excel-btn');  
+
+            // Inisialisasi: tampilkan konten 'import' saat halaman dimuat
+            document.getElementById('import').classList.add('active-content');
+            document.querySelector('a[data-target="import"]').classList.add('active');
+
+            // Fungsi untuk men-generate tabel detail store
+            function generateDetailStoreTable(data) {
+                detailStoreTbody.innerHTML = '';
+                if (data.length === 0) {
+                    const tr = document.createElement("tr");
+                    tr.innerHTML = `<td colspan="12" class="py-4 text-center text-gray-500">Tidak ada data yang cocok dengan filter.</td>`;
+                    detailStoreTbody.appendChild(tr);
+                    return;
+                }
+
+                data.forEach((row, index) => {
+                    const tr = document.createElement("tr");
+                    tr.innerHTML = `
+                        <td class="py-2 px-4 border-b">${index + 1}</td>
+                        <td class="py-2 px-4 border-b">${row.CreateDate || '-'}</td>
+                        <td class="py-2 px-4 border-b">${row.Site || '-'}</td>
+                        <td class="py-2 px-4 border-b">${row["Id Code"] || '-'}</td>
+                        <td class="py-2 px-4 border-b">${row["VendorName"] || '-'}</td>
+                        <td class="py-2 px-4 border-b">${row["FromSiteName"] || '-'}</td>
+                        <td class="py-2 px-4 border-b">${row["ToSiteName"] || '-'}</td>
+                        <td class="py-2 px-4 border-b">${row["EndStatus"] || '-'}</td>
+                        <td class="py-2 px-4 border-b">${row.PIC || '-'}</td>
+                        <td class="py-2 px-4 border-b">${row.Keterangan || '-'}</td>
+                        <td class="py-2 px-4 border-b">${row.Month || '-'}</td>
+                        <td class="py-2 px-4 border-b">${row.Day || '-'}</td>
+                        <td class="py-2 px-4 border-b">${row.DK_LK || '-'}</td>
+                    `;
+                    detailStoreTbody.appendChild(tr);
+                });
+            }
+            
+            // Fungsi untuk meng-generate opsi filter untuk Outstanding Crossdock
+            function generateFilterOptions() {
+                // Pindahkan deklarasi uniqueMonths ke sini
+                const uniqueMonths = [...new Set(dataUnik.map(item => item.Month))].filter(Boolean).sort((a, b) => {
+                    const monthOrder = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"];
+                    return monthOrder.indexOf(a) - monthOrder.indexOf(b);
+                });
+
+                const uniqueSites = [...new Set(dataUnik.map(item => item.Site))].sort();
+                const uniqueKeterangan = [...new Set(dataUnik.map(item => item.Keterangan))].sort();
+                const uniqueFromSites = [...new Set(dataUnik.map(item => item["FromSiteName"]))].sort();
+                const uniqueDK_LK = [...new Set(dataUnik.map(item => item.DK_LK))].filter(Boolean).sort();
+
+                filterSite.innerHTML = `<option value="">-- Pilih Site --</option>`;
+                uniqueSites.forEach(site => {
+                    if (site) {
+                        filterSite.innerHTML += `<option value="${site}">${site}</option>`;
+                    }
+                });
+
+                filterKeterangan.innerHTML = `<option value="">-- Pilih Keterangan --</option>`;
+                uniqueKeterangan.forEach(ket => {
+                    if (ket) {
+                        filterKeterangan.innerHTML += `<option value="${ket}">${ket}</option>`;
+                    }
+                });
+
+                filterFromSite.innerHTML = `<option value="">-- Pilih From Site --</option>`;
+                uniqueFromSites.forEach(fromSite => {
+                    if (fromSite) {
+                        filterFromSite.innerHTML += `<option value="${fromSite}">${fromSite}</option>`;
+                    }
+                });
+
+                filterDK_LK.innerHTML = `<option value="">-- Pilih DK_LK --</option>`; // <--- Tambahkan baris ini
+                uniqueDK_LK.forEach(dkLk => {
+                    filterDK_LK.innerHTML += `<option value="${dkLk}">${dkLk}</option>`;
+                });
+
+                // Tambahkan logika untuk mengisi dropdown bulan
+                filterMonth.innerHTML = `<option value="">-- Pilih Bulan --</option>`;
+                uniqueMonths.forEach(month => {
+                    filterMonth.innerHTML += `<option value="${month}">${month}</option>`;
+                });
+            }        
+
+            // Fungsi untuk menerapkan filter Outstanding Crossdock
+            function applyFilters() {
+                const selectedSite = filterSite.value;
+                const selectedKeterangan = filterKeterangan.value;
+                const selectedFromSite = filterFromSite.value;
+                // Dapatkan nilai tunggal dari filter bulan
+                const selectedMonth = filterMonth.value;
+                // Dapatkan nilai filter Day
+                const selectedDayRange = filterDay.value;
+                const selectedDK_LK = filterDK_LK.value;
+
+                filteredData = dataUnik.filter(item => {
+                    const siteMatch = selectedSite === "" || item.Site === selectedSite;
+                    const keteranganMatch = selectedKeterangan === "" || item.Keterangan === selectedKeterangan;
+                    const fromSiteMatch = selectedFromSite === "" || item["FromSiteName"] === selectedFromSite;
+                    
+                    // Cek apakah item.Month cocok dengan nilai tunggal yang dipilih
+                    const monthMatch = selectedMonth === "" || item.Month === selectedMonth;
+                    const dkLkMatch = selectedDK_LK === "" || item.DK_LK === selectedDK_LK;
+                    let dayMatch = true; // Asumsikan match jika tidak ada filter Day yang dipilih
+                    if (selectedDayRange !== "") {
+                        const dayValue = parseInt(item.Day, 10);
+                        if (selectedDayRange === "'-'-3") {
+                            dayMatch = dayValue >= 1 && dayValue <= 3;
+                        } else if (selectedDayRange === "3-7") {
+                            // Gunakan "> 3" agar tidak tumpang tindih dengan rentang sebelumnya
+                            dayMatch = dayValue > 3 && dayValue <= 7; 
+                        } else if (selectedDayRange === "7-1000") {
+                            dayMatch = dayValue > 7;
+                        }
+                    }
+                    return siteMatch && keteranganMatch && fromSiteMatch && monthMatch && dayMatch && dkLkMatch;
+                });
+
+                generateDetailStoreTable(filteredData);
+            }
+
+            // Fungsi untuk menangani dropdown di sidebar
+            dropdownToggles.forEach(toggle => {
+                toggle.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    const targetId = toggle.dataset.target;
+                    const dropdownMenu = document.getElementById(targetId);
+                    const svgIcon = toggle.querySelector('svg');
+
+                    if (dropdownMenu) {
+                        dropdownMenu.classList.toggle('open');
+                        svgIcon.classList.toggle('rotate-180');
+                    }
+                });
             });
-            tbody.appendChild(tr);
-          });
+
+            // Fungsi untuk mengganti konten utama
+            contentLinks.forEach(link => {
+                link.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    const targetId = link.dataset.target;
+
+                    // Nonaktifkan semua konten
+                    contentContainers.forEach(content => {
+                        content.classList.remove('active-content');
+                        content.classList.add('hidden-content');
+                    });
+
+                    // Aktifkan konten yang sesuai
+                    const targetContent = document.getElementById(targetId);
+                    if (targetContent) {
+                        targetContent.classList.remove('hidden-content');
+                        targetContent.classList.add('active-content');
+                    }
+
+                    // Perbarui kelas 'active' pada link sidebar
+                    contentLinks.forEach(l => l.classList.remove('active'));
+                    link.classList.add('active');
+
+                    // Panggil fungsi untuk mengisi tabel Outstanding Crossdock jika navigasi ke halaman tersebut
+                    if (targetId === 'outstandingCrossdock') {
+                        // Tampilkan semua data saat pertama kali masuk halaman
+                        applyFilters();
+                        // Generate opsi filter
+                        generateFilterOptions();
+                    }
+
+                    // Jika navigasi ke Import, sembunyikan preview jika ada
+                    if (targetId === 'import') {
+                        previewSection.classList.add('hidden-content');
+                    }
+                });
+            });
+
+            // Fungsi untuk men-generate nama bulan singkat
+            function getShortMonthName(date) {
+                const monthNames = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"];
+                return monthNames[date.getMonth()];
+            }
+
+            siteFilter.addEventListener('change', (e) => {
+                const selectedSite = e.target.value;
+                let filteredDataBySite = dataUnik;
+
+                if (selectedSite) {
+                    filteredDataBySite = dataUnik.filter(item => item.Site === selectedSite);
+                }
+                
+                updateDashboard(filteredDataBySite);
+            });
+
+            // Fungsi untuk menangani impor file
+            fileInput.addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (!file) {
+                    return;
+                }
+
+                fileNameDisplay.textContent = file.name;
+                const reader = new FileReader();
+
+                Swal.fire({
+                    title: 'Memproses file...',
+                    text: 'Mohon tunggu sebentar',
+                    allowOutsideClick: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
+
+                reader.onload = function(event) {
+                    try {
+                        const data = new Uint8Array(event.target.result);
+                        const workbook = XLSX.read(data, { type: 'array' });
+
+                        const sheetName = 'CrossDock Data';
+                        const worksheet = workbook.Sheets[sheetName];
+                        if (!worksheet) {
+                            Swal.fire('Gagal!', `Sheet dengan nama "${sheetName}" tidak ditemukan.`, 'error');
+                            return;
+                        }
+
+                        const jsonData = XLSX.utils.sheet_to_json(worksheet);
+                        dataFull = jsonData;
+
+                        // Daftar status yang ingin disimpan dan dipratinjau
+                        const allowedStatuses = [
+                            "New Document",
+                            "Inbound Process",
+                            "On The Way To Outbond",
+                            "Outbond Process",                                         
+                        ];
+
+                        // Tambahkan filter baru untuk FromSiteName
+                        const allowedFromSite = "DC CIKUPA";
+
+                        dataUnik = [];
+                        const idCodeMap = new Set();
+
+                        jsonData.forEach(row => {
+                            const idCode = row["Id Code"];
+                            const endStatus = row["EndStatus"];
+                            const fromSiteName = row["FromSiteName"];
+
+                            // Filter data berdasarkan 'EndStatus' yang diizinkan
+                            if (idCode && !idCodeMap.has(idCode) && allowedStatuses.includes(endStatus) && fromSiteName === allowedFromSite) {
+                                idCodeMap.add(idCode);
+                                
+                                const uniqueRow = { ...row };
+
+                                // LOGIKA UNTUK MENGISI KOLOM KOSONG
+                                const vendorLookup = vendorMatrix.find(v => v.VendorName === uniqueRow["VendorName"]);
+                                if (vendorLookup) {
+                                    uniqueRow.Site = vendorLookup.Keterangan;
+                                    // Tambahan logika untuk mengisi kolom DK_LK
+                                    uniqueRow.DK_LK = vendorLookup.DK_LK;
+                                } else {
+                                    uniqueRow.Site = "Vendor tidak ditemukan";
+                                    // Jika vendor tidak ditemukan, set DK_LK ke nilai default
+                                    uniqueRow.DK_LK = "Tidak Ditemukan";
+                                }
+
+                                const statusLookupByEndStatus = documentStatuses.find(s => s.endStatus === uniqueRow["EndStatus"]);
+                                if (statusLookupByEndStatus) {
+                                    uniqueRow.Keterangan = statusLookupByEndStatus.keterangan;
+                                } else {
+                                    uniqueRow.Keterangan = "Status tidak ditemukan";
+                                }
+
+                                if (uniqueRow.Keterangan) {
+                                    const picLookupByKeterangan = documentStatuses.find(s => s.keterangan === uniqueRow.Keterangan);
+                                    if (picLookupByKeterangan) {
+                                        uniqueRow.PIC = picLookupByKeterangan.remarks;
+                                    } else {
+                                        uniqueRow.PIC = "PIC tidak ditemukan";
+                                    }
+                                } else {
+                                    uniqueRow.PIC = "Keterangan kosong";
+                                }
+
+                                // PERBAIKAN: Parsing tanggal dari string atau angka (nomor seri Excel)
+                                let parsedDate;
+                                if (typeof uniqueRow.CreateDate === 'number') {
+                                    // Jika data adalah nomor seri Excel, konversi ke tanggal
+                                    parsedDate = new Date((uniqueRow.CreateDate - (25567 + 2)) * 86400 * 1000);
+                                } else if (typeof uniqueRow.CreateDate === 'string') {
+                                    // Jika data adalah string, parse manual dari format DD/MM/YYYY HH:mm:ss
+                                    const dateParts = uniqueRow.CreateDate.split(' ')[0].split('/');
+                                    const timeParts = uniqueRow.CreateDate.split(' ')[1].split(':');
+                                    const day = parseInt(dateParts[0], 10);
+                                    const month = parseInt(dateParts[1], 10) - 1; // Bulan 0-indexed
+                                    const year = parseInt(dateParts[2], 10);
+                                    const hour = parseInt(timeParts[0], 10);
+                                    const minute = parseInt(timeParts[1], 10);
+                                    const second = parseInt(timeParts[2], 10);
+                                    parsedDate = new Date(year, month, day, hour, minute, second);
+                                }
+
+                                if (parsedDate && !isNaN(parsedDate.getTime())) {
+                                    // Format tanggal menjadi DD-MMM-YYYY
+                                    const formattedDay = String(parsedDate.getDate()).padStart(2, '0');
+                                    const formattedMonthAbbr = getShortMonthName(parsedDate);
+                                    const formattedYear = parsedDate.getFullYear();
+                                    uniqueRow.CreateDate = `${formattedDay}-${formattedMonthAbbr}-${formattedYear}`;
+
+                                    // Format nama bulan untuk kolom Month
+                                    uniqueRow.Month = parsedDate.toLocaleDateString('id-ID', { month: 'short' });
+
+                                    // Tambahkan Logika Baru untuk menghitung 'Day'
+                                    const today = new Date();
+                                    const oneDay = 1000 * 60 * 60 * 24; // Jumlah milidetik dalam satu hari
+                                    const differenceInTime = today.getTime() - parsedDate.getTime();
+                                    const differenceInDays = Math.floor(differenceInTime / oneDay);
+                                    uniqueRow.Day = differenceInDays >= 0 ? differenceInDays : '-';
+
+                                } else {
+                                    uniqueRow.CreateDate = '-';
+                                    uniqueRow.Month = '-';
+                                    uniqueRow.Day = '-';
+                                }
+                                dataUnik.push(uniqueRow);
+                            }
+                        });
+
+                        generatePreviewTable(dataUnik.slice(0, 10));
+                        previewSection.classList.remove('hidden-content');
+                        Swal.close();
+                        fileInput.value = '';
+                    } catch (error) {
+                        console.error("Gagal memproses file:", error);
+                        Swal.fire('Gagal!', 'Terjadi kesalahan saat memproses file.', 'error');
+                    }
+                };            
+                reader.readAsArrayBuffer(file);
+            });
+
+            // Fungsi untuk men-generate tabel pratinjau
+            function generatePreviewTable(data) {
+                previewTbody.innerHTML = '';
+                data.forEach((row, index) => {
+                    const tr = document.createElement("tr");
+                    tr.innerHTML = `
+                        <td class="py-2 px-4 border-b">${index + 1}</td>
+                        <td class="py-2 px-4 border-b">${row.CreateDate || '-'}</td>
+                        <td class="py-2 px-4 border-b">${row.Site || '-'}</td>
+                        <td class="py-2 px-4 border-b">${row["Id Code"] || '-'}</td>
+                        <td class="py-2 px-4 border-b">${row["VendorName"] || '-'}</td>
+                        <td class="py-2 px-4 border-b">${row["FromSiteName"] || '-'}</td>
+                        <td class="py-2 px-4 border-b">${row["ToSiteName"] || '-'}</td>
+                        <td class="py-2 px-4 border-b">${row["EndStatus"] || '-'}</td>
+                        <td class="py-2 px-4 border-b">${row.PIC || '-'}</td>
+                        <td class="py-2 px-4 border-b">${row.Keterangan || '-'}</td>
+                        <td class="py-2 px-4 border-b">${row.Month || '-'}</td>
+                        <td class="py-2 px-4 border-b">${row.Day || '-'}</td>
+                        <td class="py-2 px-4 border-b">${row.DK_LK || '-'}</td>     
+                    `;
+                    previewTbody.appendChild(tr);
+                });
+            }
+
+            // Simpan ke variabel JS dan pindah ke Dashboard
+            saveBtn.addEventListener('click', () => {
+                console.log("Data Unik:", dataUnik);
+                console.log("Data Full:", dataFull);
+
+                Swal.fire({
+                    title: 'Berhasil!',
+                    text: 'Data berhasil diimpor dan tersimpan di memori JS!',
+                    icon: 'success',
+                    confirmButtonText: 'OK'
+                });
+
+                // Pindah ke Dashboard
+                document.getElementById('import').classList.add('hidden-content');
+                document.getElementById('import').classList.remove('active-content');
+                document.getElementById('dashboard').classList.remove('hidden-content');
+                document.getElementById('dashboard').classList.add('active-content');
+
+                contentLinks.forEach(l => l.classList.remove('active'));
+                document.querySelector('a[data-target="dashboard"]').classList.add('active');
+
+                // Panggil fungsi untuk mengupdate dashboard
+                updateDashboard();
+            });
+
+            // Event listener untuk filter Outstanding Crossdock
+            filterSite.addEventListener('change', applyFilters);
+            filterKeterangan.addEventListener('change', applyFilters);
+            filterFromSite.addEventListener('change', applyFilters);
+            filterMonth.addEventListener('change', applyFilters);
+            filterDay.addEventListener('change', applyFilters);
+            filterDK_LK.addEventListener('change', applyFilters);
+            // Temukan event listener untuk resetFilterBtn
+            resetFilterBtn.addEventListener('click', () => {
+                filterSite.value = "";
+                filterKeterangan.value = "";
+                filterFromSite.value = "";                
+                filterMonth.value = "";
+                filterDay.value = "";
+                filterDK_LK.value = "";
+                applyFilters();
+            });
+
+             // Tambahkan event listener untuk tombol "Export to Excel"
+            exportExcelBtn.addEventListener('click', () => {
+                if (filteredData.length === 0) {
+                    Swal.fire('Informasi', 'Tidak ada data untuk diekspor.', 'info');
+                    return;
+                }
+
+                // Tentukan header kolom yang SESUAI dengan tampilan tabel
+                const headers = [
+                    "CreateDate",
+                    "Site",
+                    "Id Code",
+                    "VendorName",
+                    "FromSiteName",
+                    "ToSiteName",
+                    "EndStatus",
+                    "PIC",
+                    "Keterangan",
+                    "Month",
+                    "Day",
+                    "DK_LK"
+                ];
+
+                // Buat data baru yang hanya berisi kolom yang diinginkan
+                const dataForExport = filteredData.map(item => {
+                    return {
+                        "CreateDate": item.CreateDate,
+                        "Site": item.Site,
+                        "Id Code": item["Id Code"],
+                        "VendorName": item["VendorName"],
+                        "FromSiteName": item["FromSiteName"],
+                        "ToSiteName": item["ToSiteName"],
+                        "EndStatus": item["EndStatus"],
+                        "PIC": item.PIC,
+                        "Keterangan": item.Keterangan,
+                        "Month": item.Month,
+                        "Day": item.Day,
+                        "DK_LK": item.DK_LK
+                    };
+                });
+
+                // Buat worksheet dari data baru
+                const worksheet = XLSX.utils.json_to_sheet(dataForExport, { header: headers });
+                const workbook = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(workbook, worksheet, "Outstanding Crossdock");
+
+                // Ekspor file Excel
+                XLSX.writeFile(workbook, "Outstanding_Crossdock.xlsx");
+            });
+        });
+
+        function updateDashboard(dataToUse = dataUnik) {
+            const totalByPic = dataToUse.reduce((acc, item) => {
+                acc[item.PIC] = (acc[item.PIC] || 0) + 1;
+                return acc;
+            }, {});
+
+            document.getElementById('grand-total').textContent = dataToUse.length;
+            document.getElementById('total-admin-inbound').textContent = totalByPic['Admin Inbound'] || 0;
+            document.getElementById('total-checker-inbound').textContent = totalByPic['Checker Inbound'] || 0;
+            document.getElementById('total-checker-outbound').textContent = totalByPic['Checker Outbound'] || 0;
+            document.getElementById('total-admin-outbound').textContent = totalByPic['Admin Outbound'] || 0;
+
+            const monthlySummary = {};
+            dataToUse.forEach(item => {
+                if (item.CreateDate) {
+                    const dateParts = item.CreateDate.split('-');
+                    const year = dateParts[2];
+                    const month = item.Month;
+                    const site = item.Site;
+                    const pic = item.PIC;
+
+                    if (!monthlySummary[year]) monthlySummary[year] = {};
+                    if (!monthlySummary[year][site]) monthlySummary[year][site] = {};
+                    if (!monthlySummary[year][site][month]) {
+                        monthlySummary[year][site][month] = {
+                            'Admin Inbound': 0,
+                            'Checker Inbound': 0,
+                            'Checker Outbound': 0,
+                            'Admin Outbound': 0
+                        };
+                    }
+                    if (pic in monthlySummary[year][site][month]) {
+                        monthlySummary[year][site][month][pic]++;
+                    }
+                }
+            });
+
+            const monthlySummaryContainer = document.getElementById('monthly-summary-container');
+            monthlySummaryContainer.innerHTML = '';
+
+            const allYears = Object.keys(monthlySummary).sort();
+            const allSites = [...new Set(dataToUse.map(item => item.Site))].filter(Boolean).sort();
+            const monthsInOrder = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"];
+            const monthsOrder = [...new Set(dataToUse.map(item => item.Month))].filter(Boolean)
+                .sort((a, b) => monthsInOrder.indexOf(a) - monthsInOrder.indexOf(b));
+
+            allYears.forEach(year => {
+                allSites.forEach(site => {
+                    const tableHTML = `
+                        <div class="bg-white rounded-2xl p-6 overflow-x-auto">
+                            <h3 class="text-2xl font-bold mb-8 flex items-center text-gray-800">${site} ${year}</h3>
+                            <table class="min-w-full divide-y divide-gray-600">
+                                <thead class="bg-white">
+                                    <tr>                                        
+                                        <th class="px-4 py-3 text-left text-sm font-medium text-black uppercase tracking-wider">Month</th>
+                                        <th class="px-4 py-3 text-left text-sm font-medium text-black uppercase tracking-wider">Admin Inbound</th>
+                                        <th class="px-4 py-3 text-left text-sm font-medium text-black uppercase tracking-wider">Checker Inbound</th>
+                                        <th class="px-4 py-3 text-left text-sm font-medium text-black uppercase tracking-wider">Checker Outbound</th>
+                                        <th class="px-4 py-3 text-left text-sm font-medium text-black uppercase tracking-wider">Admin Outbound</th>
+                                        <th class="px-4 py-3 text-left text-sm font-medium text-black uppercase tracking-wider">Total</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="bg-white divide-y divide-gray-600">
+                                    ${monthsOrder.map(month => {
+                                        const adminInboundCount = monthlySummary[year]?.[site]?.[month]?.['Admin Inbound'] || 0;
+                                        const checkerInboundCount = monthlySummary[year]?.[site]?.[month]?.['Checker Inbound'] || 0;
+                                        const checkerOutboundCount = monthlySummary[year]?.[site]?.[month]?.['Checker Outbound'] || 0;
+                                        const adminOutboundCount = monthlySummary[year]?.[site]?.[month]?.['Admin Outbound'] || 0;
+                                        const totalCount = adminInboundCount + checkerInboundCount + checkerOutboundCount + adminOutboundCount;
+                                        return `
+                                            <tr>
+                                                <td class="px-4 py-4 whitespace-nowrap text-base text-black">${month}</td>
+                                                <td class="px-4 py-4 whitespace-nowrap text-base text-black">${adminInboundCount}</td>
+                                                <td class="px-4 py-4 whitespace-nowrap text-base text-black">${checkerInboundCount}</td>
+                                                <td class="px-4 py-4 whitespace-nowrap text-base text-black">${checkerOutboundCount}</td>
+                                                <td class="px-4 py-4 whitespace-nowrap text-base text-black">${adminOutboundCount}</td>
+                                                <td class="px-4 py-4 whitespace-nowrap text-base text-black">${totalCount}</td>
+                                            </tr>
+                                        `;
+                                    }).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                    `;
+                    monthlySummaryContainer.innerHTML += tableHTML;
+                });
+            });
         }
-      })
-      .catch(err => console.error(err));
-  </script>
+
+    </script>
 </body>
 </html>
